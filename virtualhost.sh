@@ -8,9 +8,8 @@ domain=$2
 rootDir=$3
 owner=$(who am i | awk '{print $1}')
 email='webmaster@localhost'
-sitesEnable='/etc/apache2/sites-enabled/'
-sitesAvailable='/etc/apache2/sites-available/'
 userDir='/var/www/'
+sitesAvailable='/etc/httpd/conf.d/'
 sitesAvailabledomain=$sitesAvailable$domain.conf
 
 ### don't modify from here unless you know what you are doing ####
@@ -56,7 +55,7 @@ if [ "$action" == 'create' ]
 			### create the directory
 			mkdir $rootDir
 			### give permission to root dir
-			chmod 755 $rootDir
+			chmod 775 $rootDir
 			### write test file in the new domain dir
 			if ! echo "<?php echo phpinfo(); ?>" > $rootDir/phpinfo.php
 			then
@@ -80,11 +79,24 @@ if [ "$action" == 'create' ]
 			<Directory $rootDir>
 				Options Indexes FollowSymLinks MultiViews
 				AllowOverride all
+			</Directory>
+		</VirtualHost>
+		<VirtualHost *:443>
+			SSLEngine on
+			SSLCertificateFile /etc/pki/tls/certs/localhost.crt
+			SSLCertificateKeyFile /etc/pki/tls/private/localhost.key
+			ServerAdmin $email
+			ServerName $domain
+			ServerAlias $domain
+			DocumentRoot $rootDir
+			<Directory />
+				AllowOverride All
+			</Directory>
+			<Directory $rootDir>
+				Options Indexes FollowSymLinks MultiViews
+				AllowOverride all
 				Require all granted
 			</Directory>
-			ErrorLog /var/log/apache2/$domain-error.log
-			LogLevel error
-			CustomLog /var/log/apache2/$domain-access.log combined
 		</VirtualHost>" > $sitesAvailabledomain
 		then
 			echo -e $"There is an ERROR creating $domain file"
@@ -108,11 +120,9 @@ if [ "$action" == 'create' ]
 			chown -R $owner:$owner $rootDir
 		fi
 
-		### enable website
-		a2ensite $domain
 
 		### restart Apache
-		/etc/init.d/apache2 reload
+		service httpd restart
 
 		### show the finished message
 		echo -e $"Complete! \nYou now have a new Virtual Host \nYour new host is: http://$domain \nAnd its located at $rootDir"
@@ -127,11 +137,8 @@ if [ "$action" == 'create' ]
 			newhost=${domain//./\\.}
 			sed -i "/$newhost/d" /etc/hosts
 
-			### disable website
-			a2dissite $domain
-
 			### restart Apache
-			/etc/init.d/apache2 reload
+			service httpd restart
 
 			### Delete virtual host rules files
 			rm $sitesAvailabledomain
@@ -139,8 +146,9 @@ if [ "$action" == 'create' ]
 
 		### check if directory exists or not
 		if [ -d $rootDir ]; then
-			echo -e $"Delete host root directory ? (y/n)"
-			read deldir
+			#echo -e $"Delete host root directory ? (y/n)"
+			#read deldir
+			deldir='y'
 
 			if [ "$deldir" == 'y' -o "$deldir" == 'Y' ]; then
 				### Delete the directory
