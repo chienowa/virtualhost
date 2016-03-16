@@ -61,3 +61,12 @@ For Apache:
 For NGINX:
 
 		$ sudo cp /path/to/locale/<language>/virtualhost-nginx.mo /usr/share/locale/<language>/LC_MESSAGES/
+
+### Misc
+
+How to update script:
+
+    $ git remote set-url origin https://chienowa@github.com/chienowa/virtualhost.git
+    $ git commit -a
+    $ git push origin {master|virtualhost-centos}
+
